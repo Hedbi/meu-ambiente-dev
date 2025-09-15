@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ${PROJECT_NAME}-frontend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    networks:
+      - web-network
+    # Exponha a porta para hot-reloading em desenvolvimento.
+    # Em produção, o tráfego seria todo pelo proxy.
+    ports:
+      - "${FRONTEND_PORT}:3000"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ${PROJECT_NAME}-backend
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - web-network
+    # Exponha a porta para hot-reloading em desenvolvimento.
+    # Em produção, o tráfego seria todo pelo proxy.
+    ports:
+      - "${APP_PORT}:3000"
+
+  database:
+    image: postgres:15.3-alpine
+    container_name: ${PROJECT_NAME}-database
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    networks:
+      - web-network
+    ports:
+      - "${DB_PORT}:5432"
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: ${PROJECT_NAME}-pgadmin
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
+    networks:
+      - web-network
+    ports:
+      - "${PGADMIN_PORT}:80"
+    depends_on:
+      - database
+
+  proxy:
+    build:
+      context: ./proxy
+      dockerfile: Dockerfile
+    container_name: ${PROJECT_NAME}-proxy
+    ports:
+      - "${PROXY_PORT}:80"
+    networks:
+      - web-network
+    depends_on:
+      - frontend
+      - backend
+
+volumes:
+  db-data:
+    driver: local
+  pgadmin-data:
+    driver: local
+
+networks:
+  web-network:
+    driver: bridge

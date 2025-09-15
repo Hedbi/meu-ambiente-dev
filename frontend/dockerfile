@@ -1,0 +1,17 @@
+# Use a versão 20 do Node.js.
+FROM node:20-alpine
+# Define o diretório de trabalho.
+WORKDIR /app
+
+# Instala as dependências.
+COPY package*.json ./
+RUN npm install
+
+# Copia o restante do código-fonte da aplicação.
+COPY . .
+
+# Expõe a porta que o Vite utiliza por padrão.
+EXPOSE 3000
+
+# Comando para iniciar o servidor de desenvolvimento.
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
